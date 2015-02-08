@@ -380,7 +380,7 @@ func CloseOnInterrupt(signals ...os.Signal) {
 	go func() {
 		sigchan := make(chan os.Signal, 1)
 		if len(signals) > 0 {
-			signal.Notify(sigchan, signals)
+			signal.Notify(sigchan, signals...)
 		} else {
 			signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL,
 				syscall.SIGQUIT, syscall.SIGHUP, syscall.SIGUSR1)
