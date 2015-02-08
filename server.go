@@ -28,14 +28,7 @@ or for a customized server:
 
 The server will shutdown cleanly when the Close() method is called:
 
-	go func() {
-		sigchan := make(chan os.Signal, 1)
-		signal.Notify(sigchan, os.Interrupt, os.Kill)
-		<-sigchan
-		log.Info("Shutting down...")
-		manners.Close()
-	}()
-
+	manners.CloseOnInterrupt()
 	http.Handle("/hello", myHandler)
 	log.Fatal(manners.ListenAndServe(":8080", nil))
 */
@@ -50,6 +43,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"strings"
+	"os/signal"
+	"syscall"
 )
 
 // interface describing a waitgroup, so unit
@@ -375,4 +370,22 @@ func Close() {
 	}
 	servers = nil
 	m.Unlock()
+}
+
+// CloseOnInterrupt creates a go-routine that will call the Close() function when certain OS
+// signals are received. If no signals are specified,
+// the following are used: SIGINT, SIGTERM, SIGKILL, SIGQUIT, SIGHUP, SIGUSR1.
+// This function must be called before ListenAndServe.
+func CloseOnInterrupt(signals ...os.Signal) {
+	go func() {
+		sigchan := make(chan os.Signal, 1)
+		if len(signals) > 0 {
+			signal.Notify(sigchan, signals)
+		} else {
+			signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL,
+				syscall.SIGQUIT, syscall.SIGHUP, syscall.SIGUSR1)
+		}
+		<-sigchan
+		Close()
+	}()
 }
