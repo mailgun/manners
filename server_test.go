@@ -279,13 +279,19 @@ func (c *fakeConn) Close() error {
 type fakeListener struct {
 	acceptRelease chan bool
 	closeCalled   chan bool
+	unix          bool
 }
 
-func newFakeListener() *fakeListener { return &fakeListener{make(chan bool, 1), make(chan bool, 1)} }
+func newFakeListener(unix bool) *fakeListener { return &fakeListener{make(chan bool, 1), make(chan bool, 1), unix} }
 
 func (l *fakeListener) Addr() net.Addr {
-	addr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:8080")
-	return addr
+	if l.unix {
+		addr, _ := net.ResolveUnixAddr("unix", "/tmp/manners-test")
+		return addr
+	} else {
+		addr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:8080")
+		return addr
+	}
 }
 
 func (l *fakeListener) Close() error {
@@ -301,10 +307,20 @@ func (l *fakeListener) Accept() (net.Conn, error) {
 
 // Test that a connection is closed upon reaching an idle state iff the server is shutting down.
 func TestCloseOnIdle(t *testing.T) {
+	testClose(t, false)
+}
+
+// Test that a connection is closed upon reaching an idle state iff the server is shutting down.
+func TestCloseOnIdleForUnixSocket(t *testing.T) {
+	testClose(t, true)
+}
+
+// Test that a connection is closed upon reaching an idle state iff the server is shutting down.
+func testClose(t *testing.T, unix bool) {
 	server := NewServer()
 	wg := newTestWg()
 	server.wg = wg
-	fl := newFakeListener()
+	fl := newFakeListener(unix)
 	runner := func() error {
 		return server.Serve(fl)
 	}
@@ -560,7 +576,7 @@ func TestGlobalShutdown(t *testing.T) {
 	}()
 
 	go func() {
-		l := newFakeListener()
+		l := newFakeListener(false)
 		serveerr <- Serve(l, nullHandler)
 	}()
 

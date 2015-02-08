@@ -45,9 +45,11 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
+	"net/http/fcgi"
 	"os"
 	"sync"
 	"sync/atomic"
+	"strings"
 )
 
 // interface describing a waitgroup, so unit
@@ -131,10 +133,23 @@ func (s *GracefulServer) Close() {
 	close(s.shutdown)
 }
 
-// ListenAndServe provides a graceful equivalent of net/http.Serve.ListenAndServe.
+func isUnixNetwork(addr string) bool {
+	return strings.HasPrefix(addr, "/")
+}
+
+func chooseNetwork(addr string) string {
+	if isUnixNetwork(addr) {
+		return "unix"
+	}
+	return "tcp"
+}
+
+// ListenAndServe provides a graceful equivalent of net/http.Serve.ListenAndServe, and
+// also supports the FastCGI equivalent.
 func (s *GracefulServer) ListenAndServe() error {
 	if s.listener == nil {
-		oldListener, err := net.Listen("tcp", s.Addr)
+		netwk := chooseNetwork(s.Addr)
+		oldListener, err := net.Listen(netwk, s.Addr)
 		if err != nil {
 			return err
 		}
@@ -175,6 +190,7 @@ func (s *GracefulServer) ListenAndServeTLSWithConfig(config *tls.Config) error {
 	}
 
 	if s.listener == nil {
+		// only "tcp" is supported with TLS
 		ln, err := net.Listen("tcp", addr)
 		if err != nil {
 			return err
@@ -275,7 +291,14 @@ func (s *GracefulServer) Serve(listener net.Listener) error {
 		// notify test that server is up; wait for signal to continue
 		s.up <- listener
 	}
-	err := s.Server.Serve(listener)
+
+	var err error
+	if isUnixNetwork(s.Server.Addr) {
+		os.Chmod(s.Server.Addr, os.ModePerm)
+		err = fcgi.Serve(listener, s.Server.Handler)
+	} else {
+		err = s.Server.Serve(listener)
+	}
 
 	// This block is reached when the server has received a shut down command.
 	if err == nil {
@@ -306,6 +329,7 @@ var (
 )
 
 // ListenAndServe provides a graceful version of function provided by the net/http package.
+// This supports HTTP but not HTTPS or FCGI.
 func ListenAndServe(addr string, handler http.Handler) error {
 	server := NewWithServer(&http.Server{Addr: addr, Handler: handler})
 	m.Lock()
@@ -314,7 +338,18 @@ func ListenAndServe(addr string, handler http.Handler) error {
 	return server.ListenAndServe()
 }
 
+// ListenAndServe provides a graceful version of function provided by the net/http/fcgi package.
+// This supports FCGI but not HTTP/HTTPS.
+func ListenAndServeFCGI(addr string, handler http.Handler) error {
+	server := NewWithServer(&http.Server{Addr: addr, Handler: handler})
+	m.Lock()
+	servers = append(servers, server)
+	m.Unlock()
+	return server.ListenAndServe()
+}
+
 // ListenAndServeTLS provides a graceful version of function provided by the net/http package.
+// This supports HTTPS but not HTTP or FCGI.
 func ListenAndServeTLS(addr string, certFile string, keyFile string, handler http.Handler) error {
 	server := NewWithServer(&http.Server{Addr: addr, Handler: handler})
 	m.Lock()

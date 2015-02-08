@@ -23,10 +23,14 @@ Manners ensures that all requests are served by incrementing a WaitGroup when a 
 
 If your request handler spawns Goroutines that are not guaranteed to finish with the request, you can ensure they are also completed with the `StartRoutine` and `FinishRoutine` functions on the server.
 
+### FCGI
+
+Manners supports three protocols: HTTP, HTTPS and FCGI. FCGI only operates via local a Unix socket connected to a co-hosted proxy, such as Apache or Nginx.
+
 ### Compatability
 
 Manners 0.3.0 and above uses standard library functionality introduced in Go 1.3.
 
 ### Installation
 
-`go get github.com/braintree/manners`
+`go get github.com/rickb777/manners`
