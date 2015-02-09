@@ -183,7 +183,7 @@ func (s *GracefulServer) ListenAndServe() error {
 		if err != nil {
 			return err
 		}
-		s.listener = NewListener(oldListener.(*net.TCPListener))
+		s.listener = NewListener(oldListener)
 	}
 	return s.Serve(s.listener)
 }
