@@ -59,7 +59,7 @@ func main() {
 }
 ```
 
-To use FCGI, the port string must specify the Unix socket and start with a slash, as in the example above. In this case, Manners will use [fcgi.Serve](http://golang.org/pkg/net/http/fcgi/#Serve).
+To use FCGI, the port string must specify the Unix socket and start with a slash or dot, as in the example above. In this case, Manners will use [fcgi.Serve](http://golang.org/pkg/net/http/fcgi/#Serve).
 
 In each of the protocols, Manners drains down the connections cleanly when `manners.Close()` is called.
 

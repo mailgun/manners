@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -118,6 +119,8 @@ func newClient(addr net.Addr, tls bool) *client {
 var nullHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 
 func startGenericServer(t *testing.T, server *GracefulServer, statechanged chan http.ConnState, runner func() error) (l net.Listener, errc chan error) {
+	SetLogger(log.New(ioutil.Discard, "", 0))
+	// SetLogger(log.New(os.Stderr, "", log.LstdFlags))
 	server.Addr = "localhost:0"
 	server.Handler = nullHandler
 	if statechanged != nil {
