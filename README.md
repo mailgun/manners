@@ -21,11 +21,18 @@ manners.Close()
 
 Manners ensures that all requests are served by incrementing a WaitGroup when a request comes in and decrementing it when the request finishes.
 
-If your request handler spawns Goroutines that are not guaranteed to finish with the request, you can ensure they are also completed with the `StartRoutine` and `FinishRoutine` functions on the server.
+If your request handler spawns other Goroutines that are not guaranteed to finish with the request, you can ensure they are also completed with the `StartRoutine` and `FinishRoutine` functions on the server.
 
 ### FCGI
 
-Manners supports three protocols: HTTP, HTTPS and FCGI. FCGI only operates via local a Unix socket connected to a co-hosted proxy, such as Apache or Nginx.
+Manners supports three protocols: HTTP, HTTPS and FCGI. In manners, FCGI only operates via local a Unix socket connected to a co-hosted proxy, such as Apache or Nginx. To use FCGI, the port string must specify the Unix socket and start with a slash, e.g.
+
+```go
+func main() {
+  handler := MyHTTPHandler()
+  manners.ListenAndServe("/var/run/goserver", handler)
+}
+```
 
 ### Compatability
 
