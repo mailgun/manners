@@ -240,7 +240,7 @@ func (s *GracefulServer) Serve(listener net.Listener) error {
 			// (StateNew, StateIdle) -> StateActive
 			if gracefulHandler.IsClosed() {
 				gracefulConn.Close()
-				gracefulConn.forceClosed = true
+				gracefulConn.forceClosed = (oldState == http.StateIdle)
 			} else {
 				if oldState == http.StateIdle {
 					s.StartRoutine()
