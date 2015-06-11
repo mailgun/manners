@@ -66,6 +66,14 @@ type GracefulServer struct {
 	lastConnState map[net.Conn]http.ConnState
 
 	up chan net.Listener // Only used by test code.
+
+    signal os.Signal
+}
+
+// NewServer creates a new server that will shut down gracefully.
+// Call Close() to stop the server.
+func NewServer(addr string, handler http.Handler) *GracefulServer {
+	return NewWithServer(&http.Server{Addr: addr, Handler: handler})
 }
 
 // NewWithServer wraps an existing http.Server object and returns a
@@ -272,9 +280,12 @@ func (s *GracefulServer) FinishRoutine() {
 // CloseOnInterrupt creates a go-routine that will call the Close() function when certain OS
 // signals are received. If no signals are specified,
 // the following are used: SIGINT, SIGTERM, SIGKILL, SIGQUIT, SIGHUP, SIGUSR1.
-// This function must be called before ListenAndServe.
-func CloseOnInterrupt(signals ...os.Signal) {
-	go func() {
+// This function must be called before ListenAndServe, ListenAndServeTLS, or Serve.
+func (s *GracefulServer) CloseOnInterrupt(signals ...os.Signal) *GracefulServer {
+	if s == nil {
+		panic("Program error: the server must exist before this method is called.")
+	}
+	go func(rx *GracefulServer) {
 		sigchan := make(chan os.Signal, 1)
 		if len(signals) > 0 {
 			signal.Notify(sigchan, signals...)
@@ -282,7 +293,19 @@ func CloseOnInterrupt(signals ...os.Signal) {
 			signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL,
 				syscall.SIGQUIT, syscall.SIGHUP, syscall.SIGUSR1)
 		}
-		<-sigchan
-		Close()
-	}()
+		rx.signal = <-sigchan
+		rx.Close()
+	}(s)
+	return s
+}
+
+// SignalReceived gets the signal that caused the server to close, if any. If Close() was called
+// some other way, this method will return nil.
+//
+// Note that, by convention, SIGUSR1 is often used to cause a server to close all its current
+// connections cleanly, close its log files, and then restart. This facilitates log rotation.
+// If you need this behaviour, you will need to provide a loop around both the CloseOnInterrupt and
+// ListenAndServe calls.
+func (s *GracefulServer) SignalReceived() os.Signal {
+	return s.signal
 }

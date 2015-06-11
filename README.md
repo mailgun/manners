@@ -51,6 +51,15 @@ To use FCGI, the port string must specify the Unix socket and start with a slash
 
 In each of the protocols, Manners drains down the connections cleanly when `manners.Close()` is called.
 
+### Handling signals
+
+It's good to close down the server cleanly when OS signals are received. This is easy: just add
+
+```go
+manners.CloseOnInterrupt()
+```
+before the `ListenAndServe` call. This kicks off a separate goroutine to wait for an OS signal, upon which it simply calls `manners.Close()` for you. Optionally, you can pass in a list of the particular signals you care about and you can find out which signal was received, if any, afterwards.
+
 ### Compatability
 
 Manners 0.3.0 and above uses standard library functionality introduced in Go 1.3.
