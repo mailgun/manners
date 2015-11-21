@@ -1,7 +1,7 @@
 package manners
 
 import (
-	helpers "github.com/braintree/manners/test_helpers"
+	helpers "github.com/mailgun/manners/test_helpers"
 	"net/http"
 	"strings"
 	"testing"
@@ -36,7 +36,7 @@ func testStateTransition(t *testing.T, test transitionTest) {
 	server.wg = wg
 	startServer(t, server, nil)
 
-	conn := &helpers.Conn{}
+	conn := &gracefulConn{Conn: &helpers.Conn{}}
 	for _, newState := range test.states {
 		server.ConnState(conn, newState)
 	}
