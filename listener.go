@@ -140,6 +140,10 @@ func (l *TLSListener) Accept() (c net.Conn, err error) {
 	return
 }
 
+func (l *TLSListener) File() (*os.File, error) {
+	return getListenerFile(l.Listener)
+}
+
 // NewListener creates a Listener which accepts connections from an inner
 // Listener and wraps each connection with Server.
 // The configuration config must be non-nil and must have
@@ -153,6 +157,10 @@ func NewTLSListener(inner net.Listener, config *tls.Config) net.Listener {
 
 type listenerAlreadyClosed struct {
 	error
+}
+
+type filer interface {
+	File() (*os.File, error)
 }
 
 // TCPKeepAliveListener sets TCP keep-alive timeouts on accepted
@@ -175,16 +183,15 @@ func (ln TCPKeepAliveListener) Accept() (c net.Conn, err error) {
 	return tc, nil
 }
 
+func (ln TCPKeepAliveListener) File() (*os.File, error) {
+	return ln.TCPListener.File()
+}
+
 func getListenerFile(listener net.Listener) (*os.File, error) {
-	switch t := listener.(type) {
-	case *net.TCPListener:
-		return t.File()
-	case *net.UnixListener:
-		return t.File()
-	case TCPKeepAliveListener:
-		return t.TCPListener.File()
-	case *TLSListener:
-		return getListenerFile(t.Listener)
+	fl, ok := listener.(filer)
+	if !ok {
+		return nil, fmt.Errorf("Unsupported listener: %T", listener)
 	}
-	return nil, fmt.Errorf("Unsupported listener: %T", listener)
+
+	return fl.File()
 }
