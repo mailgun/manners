@@ -3,12 +3,13 @@ package manners
 import (
 	"net"
 	"net/http"
-	"os")
+	"os"
+)
 
 var (
-	defaultServer *GracefulServer
+	defaultServer  *GracefulServer
 	defaultSignals []os.Signal
-	hasSignals = false
+	hasSignals     = false
 )
 
 func preventReEntrance() {
@@ -21,8 +22,8 @@ func preventReEntrance() {
 // net/http package. Call Close() to stop the server.
 func ListenAndServe(addr string, handler http.Handler) error {
 	preventReEntrance()
-	defaultServer = NewServer(addr, handler)
-	if (hasSignals) {
+	defaultServer = NewWithServer(&http.Server{Addr: addr, Handler: handler})
+	if hasSignals {
 		defaultServer.CloseOnInterrupt(defaultSignals...)
 	}
 	return defaultServer.ListenAndServe()
@@ -32,8 +33,8 @@ func ListenAndServe(addr string, handler http.Handler) error {
 // net/http package. Call Close() to stop the server.
 func ListenAndServeTLS(addr string, certFile string, keyFile string, handler http.Handler) error {
 	preventReEntrance()
-	defaultServer = NewServer(addr, handler)
-	if (hasSignals) {
+	defaultServer = NewWithServer(&http.Server{Addr: addr, Handler: handler})
+	if hasSignals {
 		defaultServer.CloseOnInterrupt(defaultSignals...)
 	}
 	return defaultServer.ListenAndServeTLS(certFile, keyFile)
@@ -44,7 +45,7 @@ func ListenAndServeTLS(addr string, certFile string, keyFile string, handler htt
 func Serve(l net.Listener, handler http.Handler) error {
 	preventReEntrance()
 	defaultServer = NewWithServer(&http.Server{Handler: handler})
-	if (hasSignals) {
+	if hasSignals {
 		defaultServer.CloseOnInterrupt(defaultSignals...)
 	}
 	return defaultServer.Serve(l)

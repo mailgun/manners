@@ -60,6 +60,10 @@ manners.CloseOnInterrupt()
 ```
 before the `ListenAndServe` call. This kicks off a separate goroutine to wait for an OS signal, upon which it simply calls `manners.Close()` for you. Optionally, you can pass in a list of the particular signals you care about and you can find out which signal was received, if any, afterwards.
 
+### Known Issues
+
+Manners does not correctly shut down long-lived keepalive connections when issued a shutdown command. Clients on an idle keepalive connection may see a connection reset error rather than a close. See https://github.com/braintree/manners/issues/13 for details.
+
 ### Compatability
 
 Manners 0.3.0 and above uses standard library functionality introduced in Go 1.3.

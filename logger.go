@@ -1,8 +1,8 @@
 package manners
 
 import (
-	"log"
 	"io/ioutil"
+	"log"
 )
 
 var logger = log.New(ioutil.Discard, "", 0)
@@ -15,4 +15,3 @@ var logger = log.New(ioutil.Discard, "", 0)
 func SetLogger(l *log.Logger) {
 	logger = l
 }
-
