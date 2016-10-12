@@ -207,7 +207,8 @@ func (s *GracefulServer) ListenAndServeTLS(certFile, keyFile string) error {
 	return s.ListenAndServeTLSWithConfig(config)
 }
 
-// ListenAndServeTLS provides a graceful equivalent of net/http.Serve.ListenAndServeTLS.
+// ListenAndServeTLSWithConfig provides a graceful equivalent of net/http.Serve.ListenAndServeTLS
+// using a bespoke TLS config.
 func (s *GracefulServer) ListenAndServeTLSWithConfig(config *tls.Config) error {
 	addr := s.Addr
 	if addr == "" {
@@ -215,6 +216,7 @@ func (s *GracefulServer) ListenAndServeTLSWithConfig(config *tls.Config) error {
 	}
 
 	if s.listener == nil {
+		logger.Printf("Listening on tcp socket %s\n", addr)
 		ln, err := net.Listen("tcp", addr)
 		if err != nil {
 			return err
