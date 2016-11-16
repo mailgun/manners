@@ -1,7 +1,7 @@
 package manners
 
 import (
-	helpers "github.com/mailgun/manners/test_helpers"
+	helpers "github.com/rickb777/manners/test_helpers"
 	"net"
 	"net/http"
 	"os"
