@@ -145,7 +145,7 @@ func (gs *GracefulServer) ListenAndServe() error {
 		if err != nil {
 			return err
 		}
-		gs.listener = NewListener(ln.(*net.TCPListener))
+		gs.listener = NewListener(TCPKeepAliveListener{ln.(*net.TCPListener)})
 	}
 	return gs.Serve(gs.listener)
 }
