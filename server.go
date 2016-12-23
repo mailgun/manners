@@ -100,11 +100,10 @@ func NewWithServer(s *http.Server) *GracefulServer {
 func NewWithOptions(o Options) *GracefulServer {
 	var listener *GracefulListener
 	if o.Listener != nil {
-		g, ok := o.Listener.(*GracefulListener)
-		if !ok {
-			listener = NewListener(o.Listener)
+		if gl, ok := o.Listener.(*GracefulListener); ok {
+			listener = gl
 		} else {
-			listener = g
+			listener = NewListener(o.Listener)
 		}
 	}
 	if o.Server == nil {
@@ -138,11 +137,15 @@ func (gs *GracefulServer) BlockingClose() bool {
 // ListenAndServe provides a graceful equivalent of net/http.Serve.ListenAndServe.
 func (gs *GracefulServer) ListenAndServe() error {
 	if gs.listener == nil {
-		oldListener, err := net.Listen("tcp", gs.Addr)
+		addr := gs.Addr
+		if addr == "" {
+			addr = ":http"
+		}
+		ln, err := net.Listen("tcp", addr)
 		if err != nil {
 			return err
 		}
-		gs.listener = NewListener(oldListener.(*net.TCPListener))
+		gs.listener = NewListener(ln.(*net.TCPListener))
 	}
 	return gs.Serve(gs.listener)
 }
@@ -150,10 +153,6 @@ func (gs *GracefulServer) ListenAndServe() error {
 // ListenAndServeTLS provides a graceful equivalent of net/http.Serve.ListenAndServeTLS.
 func (gs *GracefulServer) ListenAndServeTLS(certFile, keyFile string) error {
 	// direct lift from net/http/server.go
-	addr := gs.Addr
-	if addr == "" {
-		addr = ":https"
-	}
 	config := &tls.Config{}
 	if gs.TLSConfig != nil {
 		*config = *gs.TLSConfig
