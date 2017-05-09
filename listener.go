@@ -8,6 +8,8 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	proxyproto "github.com/armon/go-proxyproto"
 )
 
 // NewListener wraps an existing listener for use with
@@ -141,6 +143,7 @@ func (ln TCPKeepAliveListener) Accept() (c net.Conn, err error) {
 }
 
 func getListenerFile(listener net.Listener) (*os.File, error) {
+	// TODO(pquerna): ideally we had a consistent interface for this, but proxyproto doesn't help us here.
 	switch t := listener.(type) {
 	case *net.TCPListener:
 		return t.File()
@@ -148,6 +151,10 @@ func getListenerFile(listener net.Listener) (*os.File, error) {
 		return t.File()
 	case TCPKeepAliveListener:
 		return t.TCPListener.File()
+	case *TCPKeepAliveListener:
+		return t.TCPListener.File()
+	case *proxyproto.Listener:
+		return getListenerFile(t.Listener)
 	case *TLSListener:
 		return getListenerFile(t.Listener)
 	}
